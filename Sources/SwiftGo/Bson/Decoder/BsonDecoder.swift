@@ -48,9 +48,10 @@ struct BsonDecoder {
                 }
             }
             
-            return BsonDocument(size: Int(size),
-                                elements: elements)
-            
+            return BsonDocument(
+                size: Int(size),
+                elements: elements
+            )
             
         } else {
             throw BsonDecodeError.invalidSize
@@ -68,8 +69,20 @@ struct BsonDecoder {
             return try readString(from: &buffer)
         case .objectId:
             return try readObjectId(from: &buffer)
+        case .int32:
+            return try readInt32(from: &buffer)
         default:
             throw BsonDecodeError.notSupported
+        }
+    }
+    
+    /// Read the int32 out of the buffer
+    /// - Parameter buffer: the buffer
+    private func readInt32(from buffer: inout ByteBuffer) throws -> BsonValue {
+        if let value = buffer.readInteger(endianness: .little, as: Int32.self) {
+            return .int32(value)
+        } else {
+            throw BsonDecodeError.unexpectedEndOfStream
         }
     }
     
@@ -82,7 +95,6 @@ struct BsonDecoder {
             throw BsonDecodeError.unexpectedEndOfStream
         }
     }
-    
     
     /// Read string out of the buffer
     /// - Parameter buffer: the buffer
