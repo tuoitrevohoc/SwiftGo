@@ -9,6 +9,7 @@ import Foundation
 
 // the bson element
 struct BsonElement {
+    
     /// Name of the element
     let name: String
     

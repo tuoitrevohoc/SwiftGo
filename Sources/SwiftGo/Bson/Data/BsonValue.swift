@@ -16,6 +16,7 @@ enum BsonValue {
     case binary([UInt8], type: BinarySubType)
     case objectId([UInt8])
     case boolean(Bool)
+    case date(Date)
     case null
     case regExp(String, scope: String)
     case code(String)

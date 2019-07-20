@@ -20,6 +20,47 @@ final class BsonDecoderTests: XCTestCase {
     /// The decoder
     private let decoder = BsonDecoder()
     
+    func testFullDocument() throws {
+        let data: [UInt8] = [
+            0xC9, 0x00, 0x00, 0x00, 0x07, 0x5F, 0x69, 0x64, 0x00, 0x5D, 0x30, 0x86, 0x20, 0x34, 0x1E, 0x76, 0xDE,
+            0x57, 0x26, 0x37, 0xF0, 0x02, 0x22, 0x6E, 0x61, 0x6D, 0x65, 0x22, 0x00, 0x07, 0x00, 0x00, 0x00, 0x44,
+            0x61, 0x6E, 0x69, 0x65, 0x6C, 0x00, 0x10, 0x61, 0x67, 0x65, 0x00, 0x1E, 0x00, 0x00, 0x00, 0x01, 0x70,
+            0x6F, 0x69, 0x6E, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1E, 0x40, 0x03, 0x61, 0x64, 0x64,
+            0x72, 0x65, 0x73, 0x73, 0x00, 0x2D, 0x00, 0x00, 0x00, 0x02, 0x73, 0x74, 0x72, 0x65, 0x65, 0x74, 0x00,
+            0x0C, 0x00, 0x00, 0x00, 0x31, 0x35, 0x20, 0x41, 0x6E, 0x64, 0x65, 0x72, 0x73, 0x6F, 0x6E, 0x00, 0x10,
+            0x70, 0x6F, 0x73, 0x74, 0x61, 0x6C, 0x43, 0x6F, 0x64, 0x65, 0x00, 0xCE, 0x07, 0x00, 0x00, 0x00, 0x08,
+            0x67, 0x65, 0x6E, 0x64, 0x65, 0x72, 0x00, 0x00, 0x04, 0x69, 0x6E, 0x74, 0x65, 0x72, 0x65, 0x73, 0x74,
+            0x00, 0x2D, 0x00, 0x00, 0x00, 0x02, 0x30, 0x00, 0x06, 0x00, 0x00, 0x00, 0x6D, 0x6F, 0x76, 0x69, 0x65,
+            0x00, 0x02, 0x31, 0x00, 0x06, 0x00, 0x00, 0x00, 0x6D, 0x61, 0x6E, 0x67, 0x61, 0x00, 0x02, 0x32, 0x00,
+            0x07, 0x00, 0x00, 0x00, 0x63, 0x6F, 0x64, 0x69, 0x6E, 0x67, 0x00, 0x00, 0x09, 0x63, 0x72, 0x65, 0x61,
+            0x74, 0x65, 0x41, 0x74, 0x00, 0x40, 0xD5, 0x1B, 0x0B, 0x68, 0x01, 0x00, 0x00, 0x00];
+        
+        var buffer = allocator.buffer(capacity: data.count)
+        buffer.writeBytes(data)
+       
+        let document = try decoder.readDocument(buffer: &buffer)
+        
+        XCTAssertEqual(data.count, document.size)
+        XCTAssertEqual(8, document.elements.count)
+        
+        expect(element: document.elements[0], hasName: "_id", isObjectId: [
+            0x5d, 0x30, 0x86, 0x20, 0x34, 0x1e, 0x76, 0xde, 0x57, 0x26, 0x37, 0xf0
+        ])
+        expect(element: document.elements[1], hasName: "\"name\"", isString: "Daniel")
+        expect(element: document.elements[2], hasName: "age", isInt32: 30)
+        expect(element: document.elements[3], hasName: "point", isDouble: 7.5)
+        
+        if case .document(let subDocument) = document.elements[4].value {
+            expect(element: subDocument.elements[0], hasName: "street", isString: "15 Anderson")
+            expect(element: subDocument.elements[1], hasName: "postalCode", isInt32: 1998)
+        } else {
+            XCTFail("Failed to read BsonDocument")
+        }
+        
+        XCTAssertEqual(0, buffer.readableBytes)
+        
+    }
+    
     /// Test read empty document
     func testReadEmptyDocument() throws {
         
@@ -27,10 +68,11 @@ final class BsonDecoderTests: XCTestCase {
         buffer.writeInteger(5 as UInt32, endianness: .little)
         buffer.writeInteger(0 as UInt8)
         
-        let document = try decoder.decodeDocument(buffer: &buffer)
+        let document = try decoder.readDocument(buffer: &buffer)
         
         XCTAssertEqual(5, document.size)
         XCTAssertEqual(0, document.elements.count)
+        XCTAssertEqual(0, buffer.readableBytes)
     }
     
     /// Test read document with 1 string element
@@ -46,12 +88,13 @@ final class BsonDecoderTests: XCTestCase {
         buffer.writeInteger(0 as UInt8)
         buffer.writeInteger(0 as UInt8) // + 1
         
-        let document = try decoder.decodeDocument(buffer: &buffer)
+        let document = try decoder.readDocument(buffer: &buffer)
         
         XCTAssertEqual(22, document.size)
         XCTAssertEqual(1, document.elements.count)
     
         expect(element: document.elements[0], hasName: "Hello", isString: "World")
+        XCTAssertEqual(0, buffer.readableBytes)
         
     }
     
@@ -74,7 +117,7 @@ final class BsonDecoderTests: XCTestCase {
         var buffer = allocator.buffer(capacity: data.count)
         buffer.writeBytes(data)
         
-        let document = try decoder.decodeDocument(buffer: &buffer)
+        let document = try decoder.readDocument(buffer: &buffer)
         
         XCTAssertEqual(data.count, document.size)
         XCTAssertEqual(2, document.elements.count)
@@ -84,6 +127,7 @@ final class BsonDecoderTests: XCTestCase {
         ])
         
         expect(element: document.elements[1], hasName: "Hello", isString: "World")
+        XCTAssertEqual(0, buffer.readableBytes)
     }
     
     
@@ -102,7 +146,7 @@ final class BsonDecoderTests: XCTestCase {
         var buffer = allocator.buffer(capacity: data.count)
         buffer.writeBytes(data)
         
-        let document = try decoder.decodeDocument(buffer: &buffer)
+        let document = try decoder.readDocument(buffer: &buffer)
         
         XCTAssertEqual(data.count, document.size)
         XCTAssertEqual(3, document.elements.count)
@@ -113,6 +157,8 @@ final class BsonDecoderTests: XCTestCase {
         
         expect(element: document.elements[1], hasName: "name", isString: "Daniel")
         expect(element: document.elements[2], hasName: "age", isInt32: 30)
+        
+        XCTAssertEqual(0, buffer.readableBytes)
     }
     
     func testNegativeInt32Element() throws {
@@ -130,7 +176,7 @@ final class BsonDecoderTests: XCTestCase {
         var buffer = allocator.buffer(capacity: data.count)
         buffer.writeBytes(data)
         
-        let document = try decoder.decodeDocument(buffer: &buffer)
+        let document = try decoder.readDocument(buffer: &buffer)
         
         XCTAssertEqual(data.count, document.size)
         XCTAssertEqual(3, document.elements.count)
@@ -141,9 +187,24 @@ final class BsonDecoderTests: XCTestCase {
         
         expect(element: document.elements[1], hasName: "name", isString: "Daniel")
         expect(element: document.elements[2], hasName: "age", isInt32: -50)
+        XCTAssertEqual(0, buffer.readableBytes)
     }
     
-    /// Expect to have a string
+    /// Expect to have a double
+    /// - Parameter element: the element to check
+    /// - Parameter name: the key
+    /// - Parameter expectedValue: the value
+    fileprivate func expect(element: BsonElement, hasName name: String, isDouble expectedValue: Double) {
+        XCTAssertEqual(name, element.name)
+        
+        if case BsonValue.double(let value) = element.value {
+            XCTAssertEqual(expectedValue, value)
+        } else {
+            XCTFail("Expecting a double for \(element.name)")
+        }
+    }
+    
+    /// Expect to have an integer
     /// - Parameter element: the element to check
     /// - Parameter name: the key
     /// - Parameter expectedValue: the value
@@ -190,7 +251,7 @@ final class BsonDecoderTests: XCTestCase {
         var buffer = allocator.buffer(capacity: 1)
         
         do {
-            _ = try decoder.decodeDocument(buffer: &buffer)
+            _ = try decoder.readDocument(buffer: &buffer)
             
             XCTFail("Should throw an error")
         } catch BsonDecodeError.invalidSize {

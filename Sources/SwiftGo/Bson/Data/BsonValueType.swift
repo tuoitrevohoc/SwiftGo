@@ -17,7 +17,7 @@ enum BsonValueType: UInt8 {
     case undefined = 0x06 // deprecated
     case objectId = 0x07
     case boolean  = 0x08
-    case datetime = 0x09
+    case date = 0x09
     case null = 0x0A
     case regExp = 0x0B
     case code = 0x0D
