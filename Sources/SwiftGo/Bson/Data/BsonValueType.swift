@@ -8,7 +8,7 @@
 import Foundation
 
 // possible value of bson value type
-enum BsonValueType: UInt8 {
+public enum BsonValueType: UInt8 {
     case double = 0x01
     case string = 0x02
     case document = 0x03
