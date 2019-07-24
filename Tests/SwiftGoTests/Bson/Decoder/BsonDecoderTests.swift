@@ -43,16 +43,16 @@ final class BsonDecoderTests: XCTestCase {
         XCTAssertEqual(data.count, document.size)
         XCTAssertEqual(8, document.elements.count)
         
-        expect(element: document.elements[0], hasName: "_id", isObjectId: [
+        expect(element: document.elements["_id"]!, isObjectId: [
             0x5d, 0x30, 0x86, 0x20, 0x34, 0x1e, 0x76, 0xde, 0x57, 0x26, 0x37, 0xf0
         ])
-        expect(element: document.elements[1], hasName: "\"name\"", isString: "Daniel")
-        expect(element: document.elements[2], hasName: "age", isInt32: 30)
-        expect(element: document.elements[3], hasName: "point", isDouble: 7.5)
+        expect(element: document.elements["\"name\""]!, isString: "Daniel")
+        expect(element: document.elements["age"]!, isInt32: 30)
+        expect(element: document.elements["point"]!, isDouble: 7.5)
         
-        if case .document(let subDocument) = document.elements[4].value {
-            expect(element: subDocument.elements[0], hasName: "street", isString: "15 Anderson")
-            expect(element: subDocument.elements[1], hasName: "postalCode", isInt32: 1998)
+        if case .document(let subDocument) = document.elements["address"] {
+            expect(element: subDocument.elements["street"]!, isString: "15 Anderson")
+            expect(element: subDocument.elements["postalCode"]!, isInt32: 1998)
         } else {
             XCTFail("Failed to read BsonDocument")
         }
@@ -93,7 +93,7 @@ final class BsonDecoderTests: XCTestCase {
         XCTAssertEqual(22, document.size)
         XCTAssertEqual(1, document.elements.count)
     
-        expect(element: document.elements[0], hasName: "Hello", isString: "World")
+        expect(element: document.elements["Hello"]!, isString: "World")
         XCTAssertEqual(0, buffer.readableBytes)
         
     }
@@ -122,11 +122,11 @@ final class BsonDecoderTests: XCTestCase {
         XCTAssertEqual(data.count, document.size)
         XCTAssertEqual(2, document.elements.count)
         
-        expect(element: document.elements[0], hasName: "_id", isObjectId: [
+        expect(element: document.elements["_id"]!, isObjectId: [
             0x5d, 0x30, 0x89, 0x28, 0xe9, 0x3d, 0x37, 0x2b, 0x8e, 0x38, 0xcb, 0x4e
         ])
         
-        expect(element: document.elements[1], hasName: "Hello", isString: "World")
+        expect(element: document.elements["Hello"]!, isString: "World")
         XCTAssertEqual(0, buffer.readableBytes)
     }
     
@@ -151,12 +151,12 @@ final class BsonDecoderTests: XCTestCase {
         XCTAssertEqual(data.count, document.size)
         XCTAssertEqual(3, document.elements.count)
         
-        expect(element: document.elements[0], hasName: "_id", isObjectId: [
+        expect(element: document.elements["_id"]!, isObjectId: [
             0x5d, 0x30, 0x89, 0x28, 0xe9, 0x3d, 0x37, 0x2b, 0x8e, 0x38, 0xcb, 0x4e
         ])
         
-        expect(element: document.elements[1], hasName: "name", isString: "Daniel")
-        expect(element: document.elements[2], hasName: "age", isInt32: 30)
+        expect(element: document.elements["name"]!, isString: "Daniel")
+        expect(element: document.elements["age"]!, isInt32: 30)
         
         XCTAssertEqual(0, buffer.readableBytes)
     }
@@ -181,12 +181,12 @@ final class BsonDecoderTests: XCTestCase {
         XCTAssertEqual(data.count, document.size)
         XCTAssertEqual(3, document.elements.count)
         
-        expect(element: document.elements[0], hasName: "_id", isObjectId: [
+        expect(element: document.elements["_id"]!, isObjectId: [
             0x5d, 0x30, 0x89, 0x28, 0xe9, 0x3d, 0x37, 0x2b, 0x8e, 0x38, 0xcb, 0x4e
         ])
         
-        expect(element: document.elements[1], hasName: "name", isString: "Daniel")
-        expect(element: document.elements[2], hasName: "age", isInt32: -50)
+        expect(element: document.elements["name"]!, isString: "Daniel")
+        expect(element: document.elements["age"]!, isInt32: -50)
         XCTAssertEqual(0, buffer.readableBytes)
     }
     
@@ -194,41 +194,33 @@ final class BsonDecoderTests: XCTestCase {
     /// - Parameter element: the element to check
     /// - Parameter name: the key
     /// - Parameter expectedValue: the value
-    fileprivate func expect(element: BsonElement, hasName name: String, isDouble expectedValue: Double) {
-        XCTAssertEqual(name, element.name)
-        
-        if case BsonValue.double(let value) = element.value {
+    fileprivate func expect(element: BsonValue, isDouble expectedValue: Double) {
+        if case BsonValue.double(let value) = element {
             XCTAssertEqual(expectedValue, value)
         } else {
-            XCTFail("Expecting a double for \(element.name)")
+            XCTFail("Expecting a double")
         }
     }
     
     /// Expect to have an integer
     /// - Parameter element: the element to check
-    /// - Parameter name: the key
     /// - Parameter expectedValue: the value
-    fileprivate func expect(element: BsonElement, hasName name: String, isInt32 expectedValue: Int32) {
-        XCTAssertEqual(name, element.name)
-        
-        if case BsonValue.int32(let value) = element.value {
+    fileprivate func expect(element: BsonValue, isInt32 expectedValue: Int32) {
+        if case BsonValue.int32(let value) = element {
             XCTAssertEqual(expectedValue, value)
         } else {
-            XCTFail("Expecting a int32 for \(element.name)")
+            XCTFail("Expecting a int32")
         }
     }
     
     /// Expect to have a string
     /// - Parameter element: the element to check
-    /// - Parameter name: the key
     /// - Parameter value: the value
-    fileprivate func expect(element: BsonElement, hasName name: String, isString expectedValue: String) {
-        XCTAssertEqual(name, element.name)
-        
-        if case BsonValue.string(let value) = element.value {
+    fileprivate func expect(element: BsonValue, isString expectedValue: String) {
+        if case BsonValue.string(let value) = element {
             XCTAssertEqual(expectedValue, value)
         } else {
-            XCTFail("Expecting a string for \(element.name)")
+            XCTFail("Expecting a string")
         }
     }
     
@@ -236,13 +228,11 @@ final class BsonDecoderTests: XCTestCase {
     /// - Parameter element: the element to check
     /// - Parameter name: the key
     /// - Parameter value: the value
-    fileprivate func expect(element: BsonElement, hasName name: String, isObjectId expectedValue: [UInt8]) {
-        XCTAssertEqual(name, element.name)
-        
-        if case BsonValue.objectId(let value) = element.value {
+    fileprivate func expect(element: BsonValue, isObjectId expectedValue: [UInt8]) {
+        if case BsonValue.objectId(let value) = element {
             XCTAssertEqual(expectedValue, value)
         } else {
-            XCTFail("Expecting a string for \(element.name)")
+            XCTFail("Expecting a object Id")
         }
     }
     

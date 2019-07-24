@@ -18,11 +18,6 @@ enum BsonDecodeError: Error {
 /// The simple bson decoder
 struct BsonDecoder {
     
-    /// size of the object id
-    static let objectIdSize = 12
-    
-    static let boundaryLength = 5
-    
     /// Decode bson document out of the buffer
     ///
     /// - Parameter buffer: the buffer
@@ -32,17 +27,15 @@ struct BsonDecoder {
         if let size = buffer.readInteger(endianness: .little, as: UInt32.self) {
             let start = buffer.readerIndex
             var current = start
-            var elements = [BsonElement]()
+            var elements = [String: BsonValue]()
+            let remainSize = Int(size) - BsonDocument.boundary
             
-            while current - start < Int(size) - BsonDecoder.boundaryLength {
+            while current - start < remainSize {
                 if let typeRaw = buffer.readInteger(endianness: .little, as: UInt8.self),
                     let type = BsonValueType(rawValue: typeRaw) {
                     let name = try readCString(from: &buffer)
                     let value = try readValue(type: type, from: &buffer)
-                    let element = BsonElement(name: name, value: value)
-                    
-                    elements.append(element)
-                    
+                    elements[name] = value
                     current = buffer.readerIndex
                 } else {
                     throw BsonDecodeError.invalidFormat
@@ -52,7 +45,6 @@ struct BsonDecoder {
             buffer.moveReaderIndex(forwardBy: 1) // skip the last byte
             
             return BsonDocument(
-                size: Int(size),
                 elements: elements
             )
             
@@ -187,7 +179,7 @@ struct BsonDecoder {
     /// Read the object id out of the buffer
     /// - Parameter buffer: the buffer
     private func readObjectId(from buffer: inout ByteBuffer) throws -> BsonValue {
-        if let value = buffer.readBytes(length: BsonDecoder.objectIdSize) {
+        if let value = buffer.readBytes(length: BsonSize.objectIdSize) {
             return .objectId(value)
         } else {
             throw BsonDecodeError.unexpectedEndOfStream

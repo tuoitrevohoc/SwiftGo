@@ -24,11 +24,11 @@ extension ByteBuffer {
     mutating func write(document: BsonDocument) {
         writeInteger(UInt32(document.size), endianness: .little)
         
-        for element in document.elements {
-            let type = element.value.type
+        for (name, value) in document.elements {
+            let type = value.type
             writeInteger(UInt8(type.rawValue), endianness: .little)
-            writeCString(element.name)
-            write(value: element.value)
+            writeCString(name)
+            write(value: value)
         }
         
         writeInteger(UInt8(0))

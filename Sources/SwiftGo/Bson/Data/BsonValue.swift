@@ -8,7 +8,7 @@
 import Foundation
 
 /// Bson value
-enum BsonValue {
+public enum BsonValue {
     case double(Double)
     case string(String)
     case document(BsonDocument)
@@ -29,8 +29,92 @@ enum BsonValue {
     case maxKey
 }
 
-/// the bson value extension
 extension BsonValue {
+    
+    /// Size of this item
+    var size: Int {
+        switch self {
+        case .string(let value):
+            return BsonSize.stringBoundary + value.count
+        case .document(let document):
+            return document.size
+        case .array(let document):
+            return document.size
+        case .boolean:
+            return BsonSize.booleanSize
+        case .binary(let data, _):
+            return data.count + 1
+        case .code(let string, let scope):
+            return BsonSize.stringBoundary + string.count + scope.size
+        case .objectId(_):
+            return BsonSize.objectIdSize
+        case .date(_):
+            return BsonSize.dateSize
+        case .regExp(let string, let scope):
+            return (BsonSize.stringBoundary << 1) + string.count + scope.count
+        case .int32:
+            return BsonSize.int32Size
+        case .timestamp, .double, .int64:
+            return BsonSize.int64Size
+        case .decimal128:
+            return BsonSize.decimal128Size
+        case .null, .minKey, .maxKey:
+            return 0
+        }
+    }
+    
+    /// Return a raw value
+    var rawValue: Any? {
+        switch self {
+        case .double(let double):
+            return double
+        case .string(let string):
+            return string
+        case .document(let document):
+            return document
+        case .array(let array):
+            return array
+        case .binary(let data, _):
+            return data
+        case .code(let code, _):
+            return code
+        case .objectId(let data):
+            return data
+        case .boolean(let boolean):
+            return boolean
+        case .date(let date):
+            return date
+        case .int32(let integer):
+            return integer
+        case .int64(let integer):
+            return integer
+        case .timestamp(let timestamp):
+            return timestamp
+        case .decimal128:
+            return nil
+        case .minKey:
+            return nil
+        case .maxKey:
+            return nil
+        case .regExp(let pattern, _):
+            return try? NSRegularExpression(pattern: pattern)
+        case .null:
+            return nil
+        }
+    }
+        
+    /// Convert a raw value to BSonValue
+    /// - Parameter rawValue: raw value
+    static func from(rawValue: Any?) -> BsonValue? {
+        
+        if rawValue == nil {
+            return nil
+        } else if let bsonConvertible = rawValue as? BsonConvertible {
+            return bsonConvertible.toBsonValue()
+        }
+        
+        return nil
+    }
     
     /// Map to bson value type
     var type: BsonValueType {

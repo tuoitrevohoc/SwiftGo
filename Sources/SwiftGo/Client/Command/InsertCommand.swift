@@ -29,9 +29,15 @@ public struct InsertCommand: AnyCommand {
     /// the opCode
     static let opCode = OpCode.insert
     
+    static let FlagSize = 4
+    static let NullByteSize = 1
+    
     /// the size of the element
     var size: Int {
-        4 + collectionName.count + 1 + documents.reduce(0, { $0 + $1.size })
+        InsertCommand.FlagSize
+            + collectionName.count
+            + InsertCommand.NullByteSize
+            + documents.reduce(0, { $0 + $1.size })
     }
     
     /// the collection name

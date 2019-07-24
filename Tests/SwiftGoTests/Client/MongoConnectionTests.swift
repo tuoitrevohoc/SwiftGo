@@ -24,15 +24,16 @@ class MongoConnectionTests: XCTestCase {
     /// Test create a record
     func testCreate() throws {
         let document = BsonDocument(
-            size: 39,
             elements: [
-                BsonElement(name: "_id", value: .objectId([
+                "_id": .objectId([
                     0x1, 0x2, 0x3, 0x4, 0x5, 0x6,
                     0x7, 0x8, 0x9, 0xA, 0xB, 0xC
-                ])),
-                BsonElement(name: "name", value: .string("Daniel"))
+                ]),
+                "name": .string("Daniel")
             ]
         )
+        
+        XCTAssertEqual(39, document.size)
         
         let command = InsertCommand(to: "test.test", document: document)
         
